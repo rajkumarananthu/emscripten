@@ -9,23 +9,25 @@ import socket
 import shutil
 import sys
 import time
+import unittest
 from subprocess import Popen, PIPE
 
 if __name__ == '__main__':
   raise Exception('do not run this file directly; do something like: tests/runner sockets')
 
-try:
-  import websockify
-except Exception:
-  # websockify won't successfully import on Windows under Python3, because socketserver.py doesn't export ForkingMixIn.
-  # (On python2, ForkingMixIn was exported but it didn't actually work on Windows).
-  # Swallowing the error here means that this file can always be imported, but won't work if actually used on Windows,
-  # which is the same behavior as before.
-  pass
 import clang_native
 from common import BrowserCore, no_windows, create_file, test_file, read_file
 from tools import shared, config, utils
 from tools.shared import PYTHON, EMCC, path_from_root, WINDOWS, run_process, CLANG_CC
+
+# websockify won't successfully import on Windows under Python3, because socketserver.py doesn't
+# export ForkingMixIn.  (On python2, ForkingMixIn was exported but it didn't actually work on
+# Windows).
+has_websockify = not WINDOWS and int(os.getenv('EMTEST_LACKS_WEBSOCKIFY', '0')) == 0
+requires_websockify = unittest.skipIf(has_websockify, "This test requires websockify python module")
+
+if has_websockify:
+  import websockify
 
 npm_checked = False
 
@@ -167,6 +169,7 @@ class sockets(BrowserCore):
     print('Setting NODE_PATH=' + path_from_root('node_modules'))
     os.environ['NODE_PATH'] = path_from_root('node_modules')
 
+  @requires_websockify
   def test_sockets_echo(self, extra_args=[]):
     sockets_include = '-I' + test_file('sockets')
 
@@ -304,7 +307,7 @@ class sockets(BrowserCore):
       (CompiledServerHarness(test_file('sockets/test_sockets_echo_server.c'), [sockets_include, '-DTEST_DGRAM=1'], 59164), 1)
     ]
 
-    if not WINDOWS: # TODO: Python pickling bug causes WebsockifyServerHarness to not work on Windows.
+    if has_websockify:
       harnesses += [(WebsockifyServerHarness(test_file('sockets/test_sockets_echo_server.c'), [sockets_include], 59160), 0)]
 
     # Basic test of node client against both a Websockified and compiled echo server.
