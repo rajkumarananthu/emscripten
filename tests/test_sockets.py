@@ -7,10 +7,10 @@ import multiprocessing
 import os
 import socket
 import shutil
+import subprocess
 import sys
 import time
 import unittest
-from subprocess import Popen, PIPE
 
 if __name__ == '__main__':
   raise Exception('do not run this file directly; do something like: tests/runner sockets')
@@ -20,10 +20,7 @@ from common import BrowserCore, no_windows, create_file, test_file, read_file
 from tools import shared, config, utils
 from tools.shared import PYTHON, EMCC, path_from_root, WINDOWS, run_process, CLANG_CC
 
-# websockify won't successfully import on Windows under Python3, because socketserver.py doesn't
-# export ForkingMixIn.  (On python2, ForkingMixIn was exported but it didn't actually work on
-# Windows).
-has_websockify = not WINDOWS and int(os.getenv('EMTEST_LACKS_WEBSOCKIFY', '0')) == 0
+has_websockify = int(os.getenv('EMTEST_LACKS_WEBSOCKIFY', '0')) == 0
 requires_websockify = unittest.skipIf(has_websockify, "This test requires websockify python module")
 
 if has_websockify:
@@ -62,9 +59,8 @@ class WebsockifyServerHarness():
     # NOTE empty filename support is a hack to support
     # the current test_enet
     if self.filename:
-      proc = run_process([CLANG_CC, test_file(self.filename), '-o', 'server', '-DSOCKK=%d' % self.target_port] + clang_native.get_clang_native_args() + self.args, clang_native.get_clang_native_env(), stdout=PIPE, stderr=PIPE)
-      print('Socket server build: out:', proc.stdout, '/ err:', proc.stderr)
-      process = Popen([os.path.abspath('server')])
+      proc = run_process([CLANG_CC, test_file(self.filename), '-o', 'server', '-DSOCKK=%d' % self.target_port] + clang_native.get_clang_native_args() + self.args, clang_native.get_clang_native_env())
+      process = subprocess.Popen([os.path.abspath('server')])
       self.processes.append(process)
 
     # start the websocket proxy
@@ -120,7 +116,7 @@ class CompiledServerHarness():
     proc = run_process([EMCC, '-Werror', test_file(self.filename), '-o', 'server.js', '-DSOCKK=%d' % self.listen_port] + self.args)
     print('Socket server build: out:', proc.stdout or '', '/ err:', proc.stderr or '')
 
-    process = Popen(config.NODE_JS + ['server.js'])
+    process = subprocess.Popen(config.NODE_JS + ['server.js'])
     self.processes.append(process)
 
   def __exit__(self, *args, **kwargs):
@@ -139,7 +135,7 @@ class BackgroundServerProcess():
 
   def __enter__(self):
     print('Running background server: ' + str(self.args))
-    process = Popen(self.args)
+    process = subprocess.Popen(self.args)
     self.processes.append(process)
 
   def __exit__(self, *args, **kwargs):
