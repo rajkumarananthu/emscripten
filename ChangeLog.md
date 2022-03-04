@@ -20,6 +20,10 @@ See docs/process.md for more on how version tagging works.
 
 3.1.7
 -----
+- A warning (limited-postlink-optimizations) was added that gets shown when
+  binaryen optimizations are limited due to DWARF information being requested.
+  Several binaryen passed are not compatible with the preservation of DWARF
+  information. (#16428)
 - Remove unmaintained ASMFS filesystem backend and associated `-sASMFS`
   settings.  The new wasmfs filesystem is far enough along that it seems clear
   that ASMFS will not need to be revived.
